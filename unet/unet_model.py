@@ -35,7 +35,7 @@ class UNet(nn.Module):
         logits = self.outc(x)
         return logits
 
-    def use_checkpointing(self):
+    def use_checkpointing(self):#将这部分计算结果的内存消耗降到常数级别
         self.inc = torch.utils.checkpoint(self.inc)
         self.down1 = torch.utils.checkpoint(self.down1)
         self.down2 = torch.utils.checkpoint(self.down2)

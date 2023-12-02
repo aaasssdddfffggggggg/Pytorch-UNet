@@ -24,10 +24,10 @@ def load_image(filename):
 
 
 def unique_mask_values(idx, mask_dir, mask_suffix):
-    mask_file = list(mask_dir.glob(idx + mask_suffix + '.*'))[0]
+    mask_file = list(mask_dir.glob(idx + mask_suffix + '.*'))[0]#mask_suffix 掩码后缀
     mask = np.asarray(load_image(mask_file))
     if mask.ndim == 2:
-        return np.unique(mask)
+        return np.unique(mask)#返回像素值 
     elif mask.ndim == 3:
         mask = mask.reshape(-1, mask.shape[-1])
         return np.unique(mask, axis=0)
@@ -43,7 +43,7 @@ class BasicDataset(Dataset):
         self.scale = scale
         self.mask_suffix = mask_suffix
 
-        self.ids = [splitext(file)[0] for file in listdir(images_dir) if isfile(join(images_dir, file)) and not file.startswith('.')]
+        self.ids = [splitext(file)[0] for file in listdir(images_dir) if isfile(join(images_dir, file)) and not file.startswith('.')] #提取文件名 去除扩展部分
         if not self.ids:
             raise RuntimeError(f'No input file found in {images_dir}, make sure you put your images there')
 
@@ -69,23 +69,23 @@ class BasicDataset(Dataset):
         pil_img = pil_img.resize((newW, newH), resample=Image.NEAREST if is_mask else Image.BICUBIC)
         img = np.asarray(pil_img)
 
-        if is_mask:
+        if is_mask:#处理的是mask
             mask = np.zeros((newH, newW), dtype=np.int64)
             for i, v in enumerate(mask_values):
                 if img.ndim == 2:
-                    mask[img == v] = i
+                    mask[img == v] = i#给处理的mask每个位置赋mask_values对应的标号i
                 else:
                     mask[(img == v).all(-1)] = i
 
             return mask
 
-        else:
+        else:#处理的是输入img
             if img.ndim == 2:
-                img = img[np.newaxis, ...]
+                img = img[np.newaxis, ...]#图像的维度从 (H, W) 转换为 (1, H, W)
             else:
-                img = img.transpose((2, 0, 1))
+                img = img.transpose((2, 0, 1))#转换为 (C, H, W)
 
-            if (img > 1).any():
+            if (img > 1).any():#图像的值范围缩放到 [0, 1]
                 img = img / 255.0
 
             return img
@@ -108,7 +108,7 @@ class BasicDataset(Dataset):
 
         return {
             'image': torch.as_tensor(img.copy()).float().contiguous(),
-            'mask': torch.as_tensor(mask.copy()).long().contiguous()
+            'mask': torch.as_tensor(mask.copy()).long().contiguous()#contiguous() 方法确保张量在内存中是连续存储
         }
 
 
