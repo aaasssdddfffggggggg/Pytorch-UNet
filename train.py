@@ -112,7 +112,7 @@ def train_model(
         #if torch.cuda.is_available():
             
         #model=model.to(device)
-        model=torch.nn.DataParallel(model,device_ids=[device])
+        # model=torch.nn.DataParallel(model,device_ids=[device])
         #model.to(device)
         #model=torch.nn.DataParallel(model,device_ids=[1,7])
         #model.to(device)
@@ -124,7 +124,7 @@ def train_model(
                 # images=images.to(device)
                 # true_masks=true_masks.to(device)
                 #print(dir(model.module.module))
-                assert images.shape[1] == model.module.module.n_channels, (
+                assert images.shape[1] == model.module.n_channels, (
                     f"Network has been defined with {model.n_channels} input channels, "
                     f"but loaded images have {images.shape[1]} channels. Please check that "
                     "the images are loaded correctly."
@@ -132,8 +132,8 @@ def train_model(
                 #devices = torch.device("cuda:1,5") 
                 images = images.to(
                     device=device,
-                    # dtype=torch.float32,
-                    # memory_format=torch.channels_last,
+                    dtype=torch.float32,
+                    memory_format=torch.channels_last,
                 )
                 #devices = torch.device("cuda:1,2")  # 使用第二个和第三个CUDA设备
                 #images = images.to(device=devices) 
@@ -147,7 +147,7 @@ def train_model(
                     device.type if device.type != "mps" else "cpu", enabled=amp
                 ):
                     masks_pred = model(images)
-                    if model.module.module.n_classes == 1:
+                    if model.module.n_classes == 1:
                         loss = criterion(masks_pred.squeeze(1), true_masks.float())
                         loss += dice_loss(
                             F.sigmoid(masks_pred.squeeze(1)),
@@ -158,7 +158,7 @@ def train_model(
                         loss = criterion(masks_pred, true_masks)
                         loss += dice_loss(
                             F.softmax(masks_pred, dim=1).float(),
-                            F.one_hot(true_masks, model.module.module.n_classes)
+                            F.one_hot(true_masks, model.module.n_classes)
                             .permute(0, 3, 1, 2)
                             .float(),
                             multiclass=True,
@@ -179,7 +179,7 @@ def train_model(
                 pbar.set_postfix(**{"loss (batch)": loss.item()})
 
                 # Evaluation round
-                division_step = n_train // (2 * batch_size)
+                division_step = n_train // (200 * batch_size)
                 if division_step > 0:
                     if global_step % division_step == 0:
                         histograms = {}
@@ -316,8 +316,8 @@ if __name__ == "__main__":
         model.load_state_dict(state_dict)
         logging.info(f"Model loaded from {args.load}")
        
-    #model=model.to(device)
-    model=torch.nn.DataParallel(model,device_ids=[device])
+    model=model.to(device)
+    model=torch.nn.DataParallel(model, device_ids=[0, 1])
     print([param.device for param in model.module.parameters()])
     #print(next(model.parameters()).device)
     
